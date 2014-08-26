@@ -1,0 +1,146 @@
+<?xml version="1.0" encoding="utf-8"?>
+<s:SkinnableContainer xmlns:fx="http://ns.adobe.com/mxml/2009" 
+		 xmlns:s="library://ns.adobe.com/flex/spark" 
+		 xmlns:mx="library://ns.adobe.com/flex/mx" 
+		 xmlns:ui="org.nflc.common.*" 
+		 implements="org.nflc.framework.view.IModuleView"
+		 styleName="introductionView"
+		 creationComplete="addAccessProps();">
+	
+	<fx:Script>
+		<![CDATA[
+			import org.nflc.framework.model.AppModel;
+			import org.nflc.managers.AccessibilityManager;
+			
+			[Bindable]
+			[Inject("appModel", bind="true")]
+			public var appModel:AppModel;
+			
+			private var _tabbedItems:Array;
+			
+			private function addAccessProps():void
+			{
+				_tabbedItems = [title, 
+					subTitle,
+					durationLabel,
+					duration,
+					classificationLabel,
+					classification,
+					curriculumLabel,
+					curriculum
+				];
+				
+				if(appModel.prereqs.length )
+				{
+					_tabbedItems.push(prereqLabel, prereqStart);
+					
+					var len:uint = appModel.prereqs.length;
+					var label:FocusableLabel;
+					for( var i:uint = 0; i<len; i++ )
+					{
+						label = new FocusableLabel();
+						label.text = appModel.prereqs[i];
+						label.tabEnabled = true;
+						bullets.addElement( label );
+						_tabbedItems.push( label );
+					}
+				}
+				else
+				{
+					prereqs.includeInLayout = false;
+					prereqs.visible = false;
+				}
+				
+				_tabbedItems.push(info, publishedLabel, published);
+				
+				AccessibilityManager.getInstance().addDisplayObjects( _tabbedItems, AccessibilityManager.CONTENT );
+			}
+			
+			public function dispose(  e:Event = null ):void
+			{
+				if( _tabbedItems )
+					AccessibilityManager.getInstance().removeDisplayObjects( _tabbedItems, AccessibilityManager.CONTENT );
+			}
+		]]>
+	</fx:Script>
+	
+	<s:Group left="36" right="36" top="28" bottom="25">
+		
+		<ui:FocusableLabel id="title"
+						   text="{appModel.introTitle}" styleName="screenTitle" 
+						   tabEnabled="true"  />
+		
+		<ui:FocusableLabel id="subTitle" top="38"
+						   text="{appModel.lessonTitle}" styleName="subScreenTitle" 
+						   tabEnabled="true"  />
+		
+		<s:HGroup id="about" top="90" gap="15" left="150">
+		
+			<s:VGroup horizontalAlign="right" gap="10">
+				<ui:FocusableLabel id="durationLabel" 
+								   text="Estimated Duration:" 
+								   fontWeight="bold" fontSize="19"
+								   tabEnabled="true"  />
+				
+				<ui:FocusableLabel id="classificationLabel" 
+								   text="Classification:" 
+								   fontWeight="bold" fontSize="19"
+								   tabEnabled="true"  />
+				
+				<ui:FocusableLabel id="curriculumLabel" 
+								   text="Curriculum:" 
+								   fontWeight="bold" fontSize="19"
+								   tabEnabled="true"  />
+			</s:VGroup>
+			
+			<s:VGroup gap="10">
+				<ui:FocusableLabel id="duration" 
+								   text="{appModel.duration}" 
+								   tabEnabled="true" fontSize="19" />
+				
+				<ui:FocusableLabel id="classification" 
+								   text="Unclassified"  fontSize="19"
+								   tabEnabled="true"  />
+				
+				<ui:FocusableLabel id="curriculum" 
+								   fontSize="19"
+								   text="{appModel.curriculum}" 
+								   tabEnabled="true"  />
+			</s:VGroup>
+			
+		</s:HGroup>			
+		
+		
+		<s:VGroup id="prereqs" left="100" top="{about.y + about.height + 30}" gap="10">
+			<s:HGroup>
+				<ui:FocusableLabel id="prereqLabel" 
+								   text="Prerequisites:"
+								   tabEnabled="true" fontWeight="bold"  />
+				<ui:FocusableLabel id="prereqStart" 
+								   text="Before beginning this lesson, you should be familiar with the following:" 
+								   tabEnabled="true"  />
+			</s:HGroup>
+			
+			<s:VGroup id="bullets" paddingLeft="40" />
+		</s:VGroup>
+		
+		<ui:FocusableLabel id="info" horizontalCenter="0"
+						   top="{prereqs.y + prereqs.height + 20}"  
+						   width="400"
+						   textAlign="center"
+						   text="{appModel.info}" 
+						   tabEnabled="true"  />
+		
+		<s:HGroup width="120" top="{info.y + info.height + 10}" horizontalCenter="0">
+			<ui:FocusableLabel id="publishedLabel" fontWeight="bold" 
+							   text="Published:" 
+							   tabEnabled="true"  />
+			
+			<ui:FocusableLabel id="published" 
+							   text="{appModel.publication}" 
+							   tabEnabled="true"  />
+		</s:HGroup>
+			
+	</s:Group>
+	
+</s:SkinnableContainer>

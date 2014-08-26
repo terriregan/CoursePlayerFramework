@@ -1,0 +1,120 @@
+<?xml version="1.0" encoding="utf-8"?>
+<s:SkinnableContainer xmlns:fx="http://ns.adobe.com/mxml/2009" 
+					  xmlns:s="library://ns.adobe.com/flex/spark" 
+					  xmlns:mx="library://ns.adobe.com/flex/mx" 
+					  xmlns:ui="org.nflc.common.*" 
+					  implements="org.nflc.framework.view.IModuleView"
+					  creationComplete="loadSummary();">
+	
+	<fx:Script>
+		<![CDATA[
+			import mx.collections.ArrayCollection;
+			import mx.events.FlexEvent;
+			import mx.rpc.events.FaultEvent;
+			import mx.rpc.events.ResultEvent;
+			import mx.rpc.http.HTTPService;
+			
+			import org.nflc.common.FocusableRichText;
+			import org.nflc.framework.model.AppModel;
+			import org.nflc.managers.AccessibilityManager;
+			import org.nflc.util.XMLParseUtil;
+			
+			import spark.utils.TextFlowUtil; 
+			
+			
+			[Bindable]
+			[Inject("appModel", bind="true")]
+			public var appModel:AppModel;
+			
+			private var _service:HTTPService;
+			private var _tabbedItems:Array;
+			private var _listCollection:ArrayCollection;
+			
+			public function loadSummary():void
+			{ 
+				var lessonId:String = appModel.lessonId.substr(0,  appModel.lessonId.indexOf('/') );
+				_service = new HTTPService(); 
+				_service.url = lessonId + "/" + appModel.courseId + "." + lessonId + ".summary.xml"; 
+				_service.addEventListener( "result", httpResult ); 
+				_service.addEventListener( "fault", httpFault ); 
+				_service.resultFormat = "e4x";
+				_service.send(); 
+			} 
+			
+			public function httpResult( e:ResultEvent ):void 
+			{ 
+				addContentItems( e.result as XML );
+			} 
+			
+			public function httpFault( e:FaultEvent ):void 
+			{ 
+				var faultstring:String = e.fault.faultString; 
+			} 
+			
+			private function addContentItems( xml:XML ):void
+			{
+				_listCollection = new ArrayCollection();
+				_tabbedItems = [title, intro, grid];
+				
+				intro.text = xml.intro[0].p[0];
+				
+				for each( var bullet:XML in xml..bullet )
+				{
+					_listCollection.addItem( {"title": bullet.p[0]});
+				}
+				grid.dataProvider = _listCollection;
+				AccessibilityManager.getInstance().addDisplayObjects( _tabbedItems, AccessibilityManager.CONTENT );
+			}
+			
+			
+			// Needed to add this method as the updateIndex() method that ensures that the list item is 
+			// in view was causing the scrolling to snap back to the previous selected item
+			private function onVerticalScroll( e:Event ):void
+			{
+				grid.selectedIndex = -1;
+			}
+			
+			
+			// turn off lists scrollbars and use the windows
+			private function list_creationCompleteHandler(event:FlexEvent):void
+			{
+				grid.scroller.setStyle("horizontalScrollPolicy", "off");
+				grid.scroller.verticalScrollBar.addEventListener( Event.CHANGE, onVerticalScroll );
+			}
+			
+			// ensures selected item is fully in view
+			private function updateIndex():void 
+			{ 
+				grid.ensureIndexIsVisible(grid.selectedIndex); 
+			}
+			
+			public function dispose( e:Event = null ):void
+			{
+				
+			}
+		]]>
+	</fx:Script>
+	
+	<s:VGroup id="vgroup" gap="15" left="36" right="36" top="28" bottom="25">
+		
+		<ui:FocusableLabel id="title"
+						   text="{appModel.currentScreen.title}" styleName="screenTitle" 
+						   tabEnabled="true"  />
+		
+		<ui:FocusableLabel id="intro" width="690"  tabEnabled="true" />
+		
+		
+		<s:List id="grid" creationComplete="list_creationCompleteHandler(event)"
+				tabIndex="9" width="690" height="340" labelField="title" contentBackgroundAlpha="0"
+				itemRenderer="org.nflc.framework.component.SummaryItemRenderer" 
+				rollOverColor="#000000" selectionColor="#000000" accessibilityName="Summary"
+				updateComplete="updateIndex();">
+			<s:layout>
+				<s:VerticalLayout variableRowHeight="true" gap="10" paddingBottom="5" paddingTop="5" paddingLeft="10"/>
+			</s:layout>
+			
+		</s:List>
+		
+	</s:VGroup>
+	
+</s:SkinnableContainer>

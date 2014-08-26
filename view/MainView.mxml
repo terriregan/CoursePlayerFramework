@@ -1,0 +1,276 @@
+<?xml version="1.0" encoding="utf-8"?>
+<s:SkinnableContainer 
+		 xmlns:fx="http://ns.adobe.com/mxml/2009" 
+		 xmlns:s="library://ns.adobe.com/flex/spark" 
+		 xmlns:mx="library://ns.adobe.com/flex/mx" 
+		 xmlns:view="org.nflc.framework.view.*" 
+		 xmlns:ui="org.nflc.common.*" 
+		 styleName="mainView" 
+		 creationComplete="init(event)">	 
+	
+	<fx:Script>
+		<![CDATA[
+			import flash.accessibility.Accessibility;
+			import flash.events.FocusEvent;
+			
+			import mx.events.FlexEvent;
+			import mx.managers.IFocusManagerComponent;
+			
+			import org.nflc.common.KeyboardController;
+			import org.nflc.common.ResizableTitleWindow;
+			import org.nflc.common.WindowManager;
+			import org.nflc.framework.domain.LessonConfiguration;
+			import org.nflc.framework.domain.Screen;
+			import org.nflc.framework.event.AccessibilityEvent;
+			import org.nflc.framework.event.CourseModeEvent;
+			import org.nflc.framework.event.WindowEvent;
+			import org.nflc.framework.model.Constants;
+			import org.nflc.framework.presentation.MainViewPresentationModel;
+			import org.nflc.managers.AccessibilityManager;
+			
+			private var _accessManager:AccessibilityManager = AccessibilityManager.getInstance();
+			
+			[Bindable]
+			[Inject]
+			public var model:MainViewPresentationModel;
+			
+			[EventHandler(event="AccessibilityEvent.SET_FOCUS", properties="accObj")]
+			public function setObjectFocus( accObj:* ):void
+			{
+				switch( accObj )
+				{
+					case Constants.GOTO_TOP:
+						if( WindowManager.getInstance().windowOnTop )
+							focusManager.setFocus( WindowManager.getInstance().windowOnTop.titleLabel );
+						else
+							focusManager.setFocus( lessonTitle );
+						break;
+					
+					case Constants.KEY_NEXT:
+						focusManager.setFocus( lessonNav.nextBtn );
+						break;
+					
+					case Constants.KEY_PREVIOUS:
+						focusManager.setFocus( lessonNav.prevBtn );
+						break;
+					
+					case Constants.GLOSSARY_WIN:
+						focusManager.setFocus( resourceDock.glossaryBtn );
+						break;
+					
+					case Constants.ACRONYMS_WIN:
+						focusManager.setFocus( resourceDock.acronymsBtn );
+						break;
+					
+					case Constants.HELP_WIN:
+						focusManager.setFocus( resourceDock.helpBtn );
+						break;
+					
+					case Constants.RESOURCE_WIN:
+						focusManager.setFocus( resourceDock.resourcesBtn );
+						break;
+					
+					case Constants.TRANSCRIPT_WIN:
+						focusManager.setFocus( resourceDock.transcriptBtn );
+						break;
+					
+					case Constants.EQUATIONS_WIN:
+						focusManager.setFocus( resourceDock.equationsBtn );
+						break;
+					
+					case Constants.LESSON_MENU_BUTTON:
+						focusManager.setFocus( lessonNav.toggleMenuBtn );
+						break;
+					
+					case Constants.LESSON_MENU:
+						//focusManager.setFocus( lessonMenu.menuTitle ); focus is set in menu view
+						break;
+					
+					default:
+						focusManager.setFocus( lessonTitle );  // catch all so focus does not leave app
+				}
+				
+				// store currently focused item so that it can be restored upon window re-activation
+				if( focusManager.getFocus() )
+					_accessManager.focusedItem = focusManager.getFocus();
+			}
+			
+			[EventHandler(event="AccessibilityEvent.UPDATE_SCREEN_INFO", properties="accObj")]
+			public function updateScreenDescription( accObj:Object ):void
+			{
+				var screen:Screen = accObj as Screen;
+				screenInfo.accessibilityName = "Screen number "  + screen.screenNumber + " Screen Title " + screen.title;
+				AccessibilityManager.getInstance().say( this, screenInfo.accessibilityName);
+			}
+			
+			[EventHandler(event="AccessibilityEvent.STORE_FOCUS")]
+			public function storeFocus():void
+			{
+				_accessManager.focusedItem = focusManager.getFocus();
+			}
+			
+			[EventHandler(event="LogEvent.LOG", properties="msg")]
+			public function updateLog( msg:String ):void
+			{
+				logger.text += "\n" + msg;
+			}
+			
+			[EventHandler(event="LogEvent.TOGGLE")]
+			public function showLog():void
+			{
+				if( logger.visible )
+				{
+					logger.includeInLayout = false;
+					logger.visible = false;
+				}
+				else
+				{
+					logger.includeInLayout = true;
+					logger.visible = true;
+				}
+			}
+			
+			protected function onGainFocus(e:Event=null):void
+			{
+				trace("gain focus")
+				if( _accessManager.focusedItem != null )
+					focusManager.setFocus( _accessManager.focusedItem );	
+				else
+				{
+					// set focus to top of screen
+					focusManager.setFocus( lessonTitle );
+				}
+			}
+			
+			protected function onLoseFocus(e:Event=null):void
+			{
+				trace("lose focus")
+				if( focusManager.getFocus() )
+					_accessManager.focusedItem = focusManager.getFocus();
+				else
+					_accessManager.focusedItem = null;
+			}
+			
+			override protected function getCurrentSkinState():String 
+			{ 
+				var state:String = "normal";
+				if(  LessonConfiguration.assessment != null )
+				{
+					state = "assessment";
+					screenIndicator.setStyle( "left", 225 );
+				}
+				return state;
+			}
+			
+			private function init( e:FlexEvent ):void
+			{
+				initializeTabIndexes();
+				setUpPageListeners();
+			}
+
+			protected function initializeTabIndexes():void
+			{
+				var tabbedItems:Array;
+				if(  LessonConfiguration.assessment == null )
+				{
+					tabbedItems =  [ lessonMenu.arrow,
+									 lessonMenu.menuTitle,
+									 lessonMenu.menu,
+									 resourceDock.glossaryBtn,
+									 resourceDock.acronymsBtn,
+									 resourceDock.helpBtn,
+									 resourceDock.resourcesBtn,
+									 resourceDock.transcriptBtn,
+									 resourceDock.equationsBtn,
+									 screenIndicator,
+									 lessonNav.toggleMenuBtn,
+									 lessonNav.prevBtn,
+									 lessonNav.nextBtn,
+									 screenInfo ];
+				}
+				else
+				{
+					tabbedItems =  [ lessonMenu.arrow,
+									 lessonMenu.menu,
+									 resourceDock.helpBtn,
+									 screenIndicator,
+									 lessonNav.reviewBtn,
+									 lessonNav.prevBtn,
+									 lessonNav.nextBtn,
+									 screenInfo ];
+				}
+				
+				_accessManager.addDisplayObjects( tabbedItems  );
+				focusManager.showFocus();
+			}
+			
+			protected function setUpPageListeners():void
+			{
+				// Listen for focus changes to restore focusable object upon activativation - 508 only?
+				this.addEventListener(Event.ACTIVATE, onGainFocus );
+				this.addEventListener(Event.DEACTIVATE, onLoseFocus );
+			}
+			
+		]]>
+	</fx:Script>
+	
+	<fx:Metadata>
+		[SkinState("normal")]
+		[SkinState("disabled")]
+		[SkinState("assessment")]
+	</fx:Metadata>
+	
+	
+	<!-- Lesson title -->
+	<ui:FocusableLabel
+		id="lessonTitle" 		
+		accessibilityName="{'Lesson title: ' + model.lessonTitle}"
+		accessibilityDescription="{'This lesson consists of ' + model.totalScreens + ' screens.  It has ' + model.numResources + ' buttons that link to supplemental resources.  Navigate between screens using the previous button control+comma and the next button control+period'}"
+		tabIndex="1" 
+		focusEnabled="true"
+		tabEnabled="true"
+		text="{model.lessonTitle}"
+		styleName="lessonTitle"
+		left="33" top="20"	/>
+		
+	
+	<!-- main content container -->
+	<view:MainContentView id="mainContentView"
+						  tabIndex="2" 
+						  tabEnabled="true"
+						  hasFocusableChildren="true"
+						  top="55"  left="16"
+						  width="767" height="503" />
+	
+	<!-- slide out lesson menu -->
+	<view:LessonMenuView id="lessonMenu" width="220" top="59" bottom="46" right="20" 
+						 visible="{model.lessonMenuVisible}" /> 
+	
+	<!-- resource dock, screen progress indicator, lesson navigation  -->
+	<s:Group id="bottomContainer"
+			 bottom="16" left="17" right="17">
+		
+		<view:ResourceDock id="resourceDock" 
+						   tabEnabled="true" 
+						   styleName="resourceDock" 
+						   left="0" />
+		
+		<ui:FocusableLabel 
+				 id="screenIndicator" 
+				 styleName="screenIndicator" 
+				 tabEnabled="true" 
+				 accessibilityName = "{'Screen ' + model.currentScreen.screenNumber + ' of ' +  model.totalScreens}"
+				 width="40" left="305" top="7" 
+				 text="{model.currentScreen.screenNumber + ' of ' + model.totalScreens}" 
+				/>
+		
+		<view:LessonNavigation id="lessonNav" right="0"  tabEnabled="true"  />
+		
+	</s:Group>
+	
+	<!-- provides screen info and instructions if accessibility (screen reader) is active -->
+	<ui:FocusableLabel id="screenInfo"  accessibilityName="Screen description" focusRect="false"  />
+	
+	<s:TextArea id="logger" width="900" height="500" color="#333333" fontSize="9" includeInLayout="false" visible="false" />
+	
+</s:SkinnableContainer>

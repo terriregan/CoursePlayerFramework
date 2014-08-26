@@ -1,0 +1,82 @@
+<?xml version="1.0" encoding="utf-8"?>
+<s:Group xmlns:fx="http://ns.adobe.com/mxml/2009" 
+		 xmlns:s="library://ns.adobe.com/flex/spark" 
+		 xmlns:mx="library://ns.adobe.com/flex/mx"
+		 xmlns:view="org.nflc.framework.view.*">
+	
+	<fx:Script>
+		<![CDATA[
+			import flash.events.Event;
+			
+			import org.nflc.framework.domain.LessonConfiguration;
+			import org.nflc.framework.domain.Screen;
+			import org.nflc.framework.event.AccessibilityEvent;
+			import org.nflc.framework.event.DocumentEvent;
+			import org.nflc.framework.model.AppModel;
+			import org.nflc.framework.model.Constants;
+			import org.nflc.common.FocusableLabel;
+			import org.nflc.common.FocusableRichText;
+			
+			[Bindable]
+			[Inject("appModel", bind="true")]
+			public var appModel:AppModel;
+						
+			public function set currentScreen( value:Screen ):void
+			{
+				if( value.type == Constants.ASSESSMENT )
+				{
+					reviewView.populateQuestonList();
+					ready();
+				}
+				else
+					reviewView.dispose();
+			}
+			
+			private function ready():void
+			{
+				dispatchEvent( new Event(Event.COMPLETE) );
+			}
+			
+			private function submitAssessment():void
+			{
+				resultsView.displayScore();
+				contentStack.selectedIndex = 1;
+				dispatchEvent( new AccessibilityEvent(AccessibilityEvent.SET_FOCUS, Constants.GOTO_TOP) );
+			}
+		]]>
+	</fx:Script>
+	
+	<fx:Metadata>
+		[Event(name="complete", type="flash.events.Event")] 
+	</fx:Metadata>
+	
+	<s:layout>
+		<s:VerticalLayout />
+	</s:layout>
+	
+	<mx:ViewStack id="contentStack" 
+				  creationPolicy="all" 
+				  width="100%" height="100%">
+		
+		<!-- review -->
+		<s:NavigatorContent id="review">
+			<view:AssessmentReviewView
+				id="reviewView" 
+				questions="{appModel.assessmentQuestions}" 
+				submit="submitAssessment();"
+				width="100%" height="100%" 
+				/>
+		</s:NavigatorContent>
+		
+		<!-- results -->
+		<s:NavigatorContent id="results">
+				<view:AssessmentResultsView 
+					id="resultsView"
+					questions="{appModel.assessmentQuestions}" 
+					lessons="{appModel.lessons}" 
+					width="100%" height="100%" 
+					/>
+		</s:NavigatorContent>
+	
+	</mx:ViewStack>
+</s:Group>

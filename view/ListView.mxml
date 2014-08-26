@@ -1,0 +1,125 @@
+<?xml version="1.0" encoding="utf-8"?>
+<s:VGroup xmlns:fx="http://ns.adobe.com/mxml/2009" 
+		  xmlns:s="library://ns.adobe.com/flex/spark" 
+		  xmlns:mx="library://ns.adobe.com/flex/mx" 
+		  xmlns:ui="org.nflc.common.*" 
+		  implements="org.nflc.framework.view.IModuleView"
+		  width="100%" height="100%" minHeight="200">
+	
+	<fx:Script>
+		<![CDATA[
+			import flash.events.MouseEvent;
+			
+			import mx.collections.ArrayCollection;
+			import mx.core.FlexGlobals;
+			import mx.events.FlexEvent;
+			
+			import org.nflc.common.KeyboardController;
+			import org.nflc.framework.component.IconItemRenderer;
+			import org.nflc.framework.domain.ListData;
+			import org.nflc.framework.model.AppModel;
+			import org.nflc.managers.KeyCodes;
+			import org.nflc.util.DocumentOpener;
+		
+			[Bindable]
+			private var _listCollection:ArrayCollection = new ArrayCollection();
+			private var _selectedItem:ListData = null;
+			private var _keyboardController:KeyboardController;
+			
+			[Bindable]
+			public var useInstructions:Boolean = true;
+					
+			public function set items( value:Array ):void
+			{
+				_listCollection.source = value;
+			}
+		
+			//********************************************************
+			// private methods 
+			//********************************************************
+			protected function openDocument():void
+			{
+				if( grid.selectedIndex != -1 )
+					DocumentOpener.open( grid.selectedItem.url );
+			}
+			
+			
+			// Needed to add this method as the updateIndex() method that ensures that the list item is 
+			// in view was causing the scrolling to snap back to the previous selected item
+			private function onVerticalScroll( e:Event ):void
+			{
+				grid.selectedIndex = -1;
+			}
+			
+			// event handlers
+
+			// turn off lists scrollbars and use the windows
+			private function list_creationCompleteHandler(event:FlexEvent):void
+			{
+				grid.scroller.setStyle("horizontalScrollPolicy", "off");
+				grid.scroller.verticalScrollBar.addEventListener( Event.CHANGE, onVerticalScroll );
+				setUpKeyboardSensor();
+			}
+			
+			private function setUpKeyboardSensor():void
+			{
+				if( !_keyboardController )
+					_keyboardController = KeyboardController.getInstance();
+				
+				_keyboardController.setFocusManager( this.focusManager );
+				_keyboardController.createHotKey( grid, openDocument );
+			}
+			
+			private function tearDownKeyboardSensor():void
+			{
+				_keyboardController.removeHotKey( grid );
+				_keyboardController = null;
+			}
+			
+			
+			//********************************************************
+			// public methods 
+			//********************************************************
+			
+					
+			public function dispose( e:Event = null ):void
+			{
+				_selectedItem = null;
+				
+				// remove listeners
+				grid.scroller.verticalScrollBar.removeEventListener( Event.CHANGE, onVerticalScroll );
+				tearDownKeyboardSensor();
+			}
+			
+			public function activate( e:Event = null ):void
+			{
+				// add listeners
+				if( grid )
+					grid.scroller.verticalScrollBar.addEventListener( Event.CHANGE, onVerticalScroll );
+				setUpKeyboardSensor();
+			}
+			
+			// ensures selected item is fully in view
+			private function updateIndex():void 
+			{ 
+				grid.ensureIndexIsVisible(grid.selectedIndex); 
+			}
+			
+		]]>
+	</fx:Script>
+	
+	<ui:FocusableLabel tabIndex="8" fontSize="10"  width="100%" color="#000000" paddingTop="10" includeInLayout="{useInstructions}" paddingBottom="5"
+					   text="To open a document, click on the item or tab to it and then press the ENTER key or SPACEBAR."/>
+	
+	<s:List id="grid" creationComplete="list_creationCompleteHandler(event)"
+			tabIndex="9"  width="100%" accessibilityName="Resources"
+			dataProvider="{_listCollection}" borderColor="#dddddd"  
+			itemRenderer="org.nflc.framework.component.IconItemRenderer" labelField="title" 
+			click="openDocument()" updateComplete="updateIndex()" selectionColor="#f1f1f1" rollOverColor="#f1f1f1">
+		<s:layout>
+			<s:VerticalLayout variableRowHeight="true" gap="8" paddingBottom="5" paddingTop="5" paddingLeft="10"/>
+		</s:layout>
+		
+	</s:List>
+
+</s:VGroup>

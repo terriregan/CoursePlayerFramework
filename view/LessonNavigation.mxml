@@ -1,0 +1,147 @@
+<?xml version="1.0" encoding="utf-8"?>
+<s:Group xmlns:fx="http://ns.adobe.com/mxml/2009" 
+		 xmlns:s="library://ns.adobe.com/flex/spark" 
+		 xmlns:mx="library://ns.adobe.com/flex/mx"
+		 xmlns:view="org.nflc.framework.view.*" 
+		 xmlns:ui="org.nflc.common.*" 
+		 currentState="{model.currentState}" 
+		 creationComplete="init();">
+	
+	<fx:Script>
+		<![CDATA[
+			import org.nflc.framework.domain.LessonConfiguration;
+			import org.nflc.framework.model.Constants;
+			import org.nflc.framework.presentation.LessonNavigationPresentationModel;
+			import org.nflc.framework.view.*;
+			import org.nflc.framework.event.WindowEvent;
+			import org.nflc.common.KeyboardController;
+					
+			[Inject]
+			[Bindable]
+			public var model:LessonNavigationPresentationModel;
+			
+			private function showToolTip( e:Event ):void
+			{
+				e.target.customToolTip.visible = true;
+				e.target.depth = this.numChildren;  // this ensure the focus rect is not a bit hidden
+			}
+			
+			private function hideToolTip( e:Event ):void
+			{
+				e.target.customToolTip.visible = false;
+				e.target.depth = 0;
+			}
+			
+			private function init():void
+			{
+				var keyboardController:KeyboardController = KeyboardController.getInstance();
+				keyboardController.setFocusManager( focusManager );
+				keyboardController.createHotKey(  reviewBtn, model.returnToReview );
+				keyboardController.createHotKey(  toggleMenuBtn, model.toggleMenu );
+				keyboardController.createHotKey(  prevBtn, model.goPrev );
+				keyboardController.createHotKey(  nextBtn, model.goNext )
+			}
+		]]>	
+	</fx:Script>
+	
+	<s:states>
+		<s:State name="disablePrev" />
+		<s:State name="disableNext" />
+		<s:State name="enableBoth" />
+		<s:State name="disableBoth" />
+		<s:State name="assessment" />
+	</s:states>
+	
+	<s:Group right="0">
+		<s:layout>
+			<s:HorizontalLayout gap="0" />
+		</s:layout>
+		
+		<!-- Return to Review button -->
+		<ui:IconButtonBitmap 
+			id="reviewBtn" 
+			label="RETURN TO REVIEW" 
+			accessibilityShortcut="Control+backslash" 
+			accessibilityName="Return to review screen" 
+			tabEnabled="true"
+			focusIn="showToolTip( event )"
+			focusOut="hideToolTip( event )"
+			mouseOver="showToolTip( event )"
+			mouseOut="hideToolTip( event )"
+			customToolTip="{reviewTip}"
+			visible="{model.currentScreen.type != Constants.ASSESSMENT &amp;&amp; model.hasReviewScreenBeenViewed}"
+			buttonMode="true" 
+			styleName="navButtonReview" 
+			click="model.returnToReview();" />
+		
+		<!-- Hide/show menu button -->
+		<ui:IconButtonBitmap 
+			id="toggleMenuBtn"
+			label="{model.lessonMenuVisible ? 'HIDE MENU' : 'SHOW MENU'}" 
+			accessibilityShortcut="Control+slash" 
+			accessibilityName="{model.lessonMenuVisible ? 'Hide lesson menu' : 'Show lesson menu'}"
+			visible="{(LessonConfiguration.assessment) ? false : true}" 
+			includeInLayout="{toggleMenuBtn.visible}"
+			tabEnabled="true"
+			focusIn="showToolTip( event )"
+			focusOut="hideToolTip( event )"
+			mouseOver="showToolTip( event )"
+			mouseOut="hideToolTip( event )"
+			customToolTip="{menuTip}"
+			buttonMode="true" 
+			styleName="navButtonMenu" 
+			click="model.toggleMenu();" 
+			/>
+			
+		<!-- Previous button -->
+		<ui:IconButtonBitmap 
+		  id="prevBtn" 
+		  label="PREVIOUS" 
+		  accessibilityShortcut="Control+comma" 
+		  accessibilityName="Go to previous screen"
+		  tabEnabled="true"
+		  focusIn="showToolTip( event )"
+		  focusOut="hideToolTip( event )"
+		  mouseOver="showToolTip( event )"
+		  mouseOut="hideToolTip( event )"
+		  customToolTip="{previousTip}"
+		  enabled.disablePrev="false" 
+		  enabled.disableNext="true" 
+		  enabled.enableBoth="true" 
+		  enabled.disableBoth="false"
+		  buttonMode="true" 
+		  styleName="navButtonPrevious" 
+		  iconX="25"
+		  click="model.goPrev();" 
+		  />
+		
+		<!-- Next button -->
+		<ui:IconButtonBitmap 
+		  id="nextBtn" 
+		  label="NEXT" 
+		  accessibilityShortcut="Control+period" 
+		  accessibilityName="Go to next screen" 
+		  tabEnabled="true"
+		  focusIn="showToolTip( event )"
+		  focusOut="hideToolTip( event )"
+		  mouseOver="showToolTip( event )"
+		  mouseOut="hideToolTip( event )"
+		  customToolTip="{nextTip}"
+		  enabled.disablePrev="true" 
+		  enabled.disableNext="false" 
+		  enabled.enableBoth="true"
+		  enabled.disableBoth="false"
+		  buttonMode="true" 
+		  styleName="navButtonNext" 
+		  iconX="70"
+		  iconY="-1"
+		  click="model.goNext();"
+		  />
+	</s:Group>
+	
+	<!-- Button tool tips -->
+	<ui:ToolTipBalloon id="reviewTip" tipLabel="(Ctrl+\)" x="55" y="-40" visible="false" glowStrength=".8"  />
+	<ui:ToolTipBalloon id="menuTip" tipLabel="(Ctrl+/)" x="134" y="-40" visible="false" glowStrength=".8" />
+	<ui:ToolTipBalloon id="previousTip" tipLabel="(Ctrl+,)" x="245" y="-40" visible="false" glowStrength=".8"/>
+	<ui:ToolTipBalloon id="nextTip" tipLabel="(Ctrl+.)" x="368" y="-40" visible="false" glowStrength=".8" />
+</s:Group>

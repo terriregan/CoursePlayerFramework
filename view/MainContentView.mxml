@@ -1,0 +1,104 @@
+<?xml version="1.0" encoding="utf-8"?>
+<s:SkinnableContainer 
+		 xmlns:fx="http://ns.adobe.com/mxml/2009" 
+		 xmlns:s="library://ns.adobe.com/flex/spark" 
+		 xmlns:mx="library://ns.adobe.com/flex/mx" 
+		 xmlns:view="org.nflc.framework.view.*"
+		 styleName="mainContentView">
+	
+	<fx:Script>
+		<![CDATA[
+			import org.nflc.framework.presentation.MainContentViewPresentationModel;
+			import org.nflc.framework.view.*;
+			import org.nflc.framework.domain.Screen;
+			import org.nflc.framework.model.Constants;
+			
+			[Bindable]
+			[Inject]
+			public var model:MainContentViewPresentationModel;
+			
+		]]>
+	</fx:Script>
+	
+	<fx:Declarations>
+		<s:Fade id="loaderIn" alphaFrom="0.0" alphaTo="1.0" duration="500" />
+		<s:Fade id="loaderOut" alphaFrom="1.0" alphaTo="0.0"  duration="500"/>
+	</fx:Declarations>
+		
+	<mx:ViewStack id="contentStack"  
+				  creationPolicy="all" 
+				  selectedIndex="{model.selectedIndex}"
+				  width="100%" height="100%" 
+				  tabChildren="true" 
+				  tabEnabled="false">
+		
+		<!-- animation view : externally loaded swf file; margins built into swf -->
+		<s:NavigatorContent id="animation">
+			<view:AnimationView
+				id="animationView"
+				currentScreen="{model.currentScreen}"
+				complete="{model.displayReadyState(event)}" 
+				width="100%" height="100%" 
+				/>
+		</s:NavigatorContent>
+	
+		<!-- activity view :  margins are added in the the Activity class
+			setStyle( "left", 36 ); 
+			setStyle( "right", 36 ); 
+			setStyle( "top", 28 ); 
+			setStyle( "bottom", 25 ); 
+		-->
+		<s:NavigatorContent id="activity">
+			<s:Scroller width="100%" height="100%">
+				<view:ActivityView  
+					id="actvityView"
+					tabEnabled="true" 
+					tabChildren="true"
+					currentScreen="{model.currentScreen}"
+					complete="{model.displayReadyState(event)}"
+					/>
+			</s:Scroller>
+		</s:NavigatorContent>
+		
+		<!-- assessment view : TODO- move this into an external file -->
+		<s:NavigatorContent id="assessment">
+			<view:AssessmentView 
+				id="assessmentView"
+				tabEnabled="true" 
+				tabChildren="true"
+				currentScreen="{model.currentScreen}"
+				complete="{model.displayReadyState(event)}"
+				left="36" right="36" top="28" bottom="25"
+				/>
+		</s:NavigatorContent>
+		
+		<!-- 
+		module view : views/modules added from flex 
+		The content positioning (left="36" right="36" top="28" bottom="25") needs to be added to any screen added
+		to the ModuleView so background images will be positioned correctly
+		-->
+		<s:NavigatorContent id="module">
+			<s:Scroller width="100%" height="100%">
+				<view:ModuleView
+					id="moduleView"
+					currentScreen="{model.currentScreen}"
+					complete="{model.displayReadyState(event)}" 
+					/>
+			</s:Scroller>
+		</s:NavigatorContent> 
+		
+	</mx:ViewStack>
+	
+	
+	<view:LoadingView 
+		id="loadingView" 
+		accessibilityName="Loading screen content"
+		showEffect="{loaderIn}"
+		hideEffect="{loaderOut}"
+		backgroundColor="#000000" 
+		backgroundAlpha=".8" 
+		visible="{model.isLoading}"
+		width="100%" height="100%"  
+		/>
+	
+</s:SkinnableContainer>

@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<s:VGroup xmlns:fx="http://ns.adobe.com/mxml/2009" 
+		  xmlns:s="library://ns.adobe.com/flex/spark" 
+		  xmlns:mx="library://ns.adobe.com/flex/mx"
+		  xmlns:ui="org.nflc.common.*">
+	
+	<s:HGroup width="100%">
+		<ui:FocusableLabel id="lesson" width="400" fontWeight="bold" fontSize="12"/>
+		<ui:FocusableLabel id="total" width="150" fontWeight="bold" textAlign="center" fontSize="12"/>
+		<ui:FocusableLabel id="numCorrect" width="150" fontWeight="bold" textAlign="center" fontSize="12"/>
+	</s:HGroup>
+	
+
+	<s:Line xFrom="0" xTo="700">
+		<s:stroke>
+			<s:SolidColorStroke color="#ffffff" weight="1"/>
+		</s:stroke>
+	</s:Line>
+	
+</s:VGroup>

@@ -1,0 +1,110 @@
+<?xml version="1.0" encoding="utf-8"?>
+<s:SkinnableContainer 
+	     xmlns:fx="http://ns.adobe.com/mxml/2009" 
+		 xmlns:s="library://ns.adobe.com/flex/spark" 
+		 xmlns:mx="library://ns.adobe.com/flex/mx" 
+		 xmlns:assets="assets.images.*" 
+		 width="100%" height="100%" 
+		 styleName="lessonMenuView" 
+		 show="onShow();" hide="onHide();">
+		
+	<fx:Script>
+		<![CDATA[
+			import flash.events.MouseEvent;
+			
+			import mx.collections.ArrayCollection;
+			import mx.events.FlexEvent;
+			
+			import org.nflc.common.FocusableLabel;
+			import org.nflc.common.KeyboardController;
+			import org.nflc.framework.domain.Screen;
+			import org.nflc.framework.event.NavigationEvent;
+			import org.nflc.framework.event.ScreenEvent;
+			import org.nflc.framework.event.WindowEvent;
+			import org.nflc.framework.model.AppModel;
+			import org.nflc.framework.model.Constants;
+			import org.nflc.framework.presentation.LessonNavigationPresentationModel;
+			import org.nflc.managers.AccessibilityManager;
+			
+			import spark.components.Group;
+			import spark.events.IndexChangeEvent;
+			
+			private var _keyboardController:KeyboardController;
+			
+			[SkinPart(required="false")] 
+			public var sideStrip:Group;
+			
+			[SkinPart(required="false")] 
+			public var menuTitle:FocusableLabel;
+			
+			
+			[Inject]
+			[Bindable]
+			public var model:LessonNavigationPresentationModel;
+			
+			
+			protected function creationCompleteHandler(event:FlexEvent):void
+			{
+				menu.scroller.setStyle("horizontalScrollPolicy", "off");
+				
+				_keyboardController = KeyboardController.getInstance();
+				_keyboardController.setFocusManager( focusManager );
+			}
+			
+			override protected function partAdded( partName:String,instance:Object ):void
+			{
+				super.partAdded( partName, instance ); 
+				if( instance == sideStrip  )
+					instance.addEventListener( MouseEvent.CLICK, model.toggleMenu );
+			}
+			
+			protected function jumpToScreen( e:MouseEvent = null ):void
+			{
+				if( menu.selectedIndex != -1 )
+				{
+					model.jump( menu.selectedIndex );
+					if( !e ) // if e is exists, mouse click occurred so no need to programmatically move list
+						menu.ensureIndexIsVisible( menu.selectedIndex );
+				}
+			}
+			
+			protected function onShow():void
+			{
+				_keyboardController.createHotKey(  arrow, model.closeMenu );
+				_keyboardController.createHotKey(  menu, jumpToScreen );
+				AccessibilityManager.getInstance().say( this, "Navigate this lesson");
+				this.focusManager.setFocus(menu);
+			}
+			
+			protected function onHide():void
+			{
+				_keyboardController.removeHotKey(  arrow );
+				_keyboardController.removeHotKey(  menu );			}
+			
+		]]>
+	</fx:Script>
+	
+	<!-- states -->
+	<s:states>
+		<s:State name="normal" />
+		<s:State name="open" />
+		<s:State name="disabled" />
+	</s:states>
+	
+	<s:List id="menu" width="100%" height="456"
+			creationComplete="creationCompleteHandler(event)" 
+			selectedIndex="{model.currentScreen.screenNumber-1}"
+			click="jumpToScreen(event);" labelField="title"
+			dataProvider="{new ArrayCollection(model.screens)}" 
+			styleName="lessonList" accessibilityName="Lesson menu" 
+			itemRenderer="org.nflc.framework.component.MenuRenderer"
+			borderVisible="false" contentBackgroundAlpha=".5"
+			color="#333"  />
+	
+	<!-- close lesson nav -->
+	<s:Button  id="arrow"  rotation="180" top="-40" left="-5" click="model.closeMenu();" 
+			   buttonMode="true" skinClass="assets.skins.MenuArrowButtonSkin" 
+			   accessibilityName="Close lesson menu"  />
+	
+	
+</s:SkinnableContainer>

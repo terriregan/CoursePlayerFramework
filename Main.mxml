@@ -1,0 +1,99 @@
+<?xml version="1.0" encoding="utf-8"?>
+<s:Group 
+	xmlns:fx="http://ns.adobe.com/mxml/2009" 
+	xmlns:s="library://ns.adobe.com/flex/spark"		   
+	xmlns:mx="library://ns.adobe.com/flex/mx"
+	xmlns:swiz="http://swiz.swizframework.org">
+	
+	<fx:Script>
+		<![CDATA[
+			import org.nflc.framework.event.LoadEvent;
+			import org.nflc.framework.util.ErrorUtil;
+			import org.nflc.framework.view.MainView;
+			
+			private var _lessonId:String;
+			private var _mainView:MainView = null;
+
+			public function get lessonId():String
+			{
+				return _lessonId;
+			}
+
+			public function set lessonId(value:String):void
+			{
+				_lessonId = value;
+				appModel.lessonId = _lessonId;
+			}
+			
+			public function setDebug( value:Boolean ):void
+			{
+				appModel.debug = value;
+			}
+			
+			// add main view once all config/content xml has loaded
+			[EventHandler(event="LoadEvent.READY")]
+			public function displayMainView():void
+			{
+				if( !_mainView )
+				{
+					_mainView =  new MainView();
+					_mainView.minHeight = 0;
+					_mainView.minWidth = 0;
+					_mainView.percentHeight = 100;
+					_mainView.percentWidth = 100;
+					this.addElement( _mainView );
+				}
+			}
+			
+		]]>
+	</fx:Script>
+	
+	<fx:Declarations>
+		<swiz:Swiz>
+			<swiz:beanProviders>
+				
+				<swiz:BeanProvider 
+					xmlns:model="org.nflc.framework.model.*"
+					xmlns:controller="org.nflc.framework.controller.*"
+					xmlns:lms="com.nudoru.lms.scorm.*"
+					xmlns:presentation="org.nflc.framework.presentation.*"
+					xmlns:service="org.nflc.framework.service.*"
+					xmlns:storage="org.swizframework.storage.*">
+					
+					<!-- since this is defined inline, need to wrap in "Bean" tag -->
+					<swiz:Bean name="appModel">  
+						<model:AppModel id="appModel" />
+					</swiz:Bean>
+					
+					<controller:AppController id="appController"/>
+									
+					<!-- presentation models -->
+					<presentation:LessonNavigationPresentationModel id="lessonNavPresentationModel" />
+					<presentation:MainViewPresentationModel id="mainViewPresentationModel"/>
+					<presentation:MainContentViewPresentationModel id="mainContentViewPresentationModel"/>/
+					
+					<!-- service helper -->
+					<swiz:ServiceHelper id="serviceHelper" />
+					
+					<!-- sharedObject helper -->
+					<storage:SharedObjectBean />
+					
+					<!-- service delegates -->
+					<service:LessonDelegate />
+					<lms:SCORMFacade id="lmsDelegate"/>
+										
+				</swiz:BeanProvider>
+			</swiz:beanProviders>
+			
+			<swiz:config>
+				<swiz:SwizConfig 
+					eventPackages="org.nflc.framework.event.*" 
+					viewPackages="org.nflc.framework.view.*" 
+					defaultFaultHandler="ErrorUtil.showError" />
+			</swiz:config>
+			
+		</swiz:Swiz>
+		
+	</fx:Declarations>
+	
+</s:Group>

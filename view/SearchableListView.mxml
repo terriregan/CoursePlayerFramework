@@ -1,0 +1,372 @@
+<?xml version="1.0" encoding="utf-8"?>
+<s:Group xmlns:fx="http://ns.adobe.com/mxml/2009" 
+		  xmlns:s="library://ns.adobe.com/flex/spark" 
+		  xmlns:mx="library://ns.adobe.com/flex/mx" 
+		  xmlns:ui="org.nflc.common.*" 
+		  width="100%" height="100%" minHeight="200">
+	
+	<fx:Script>
+		<![CDATA[
+			import mx.collections.ArrayCollection;
+			import mx.events.FlexEvent;
+			
+			import org.nflc.common.KeyboardController;
+			import org.nflc.framework.component.ListItemRenderer;
+			import org.nflc.framework.domain.ListData;
+			import org.nflc.util.DocumentOpener;
+			import org.nflc.util.ExportManager;
+			import org.nflc.vo.ListItem;
+			import org.osmf.elements.AudioElement;
+			import org.osmf.media.MediaPlayer;
+			import org.osmf.media.URLResource;
+			
+			[Bindable]
+			private var _listCollection:ArrayCollection = new ArrayCollection();
+			private var _player:MediaPlayer;
+			private var _element:AudioElement;
+			private var _selectedItem:ListData = null;
+			
+			private var _glossaryObj:Object;
+			private var _exportManager:ExportManager = new ExportManager();
+			
+			private var _keyboardController:KeyboardController;
+					
+			public var courseId:String = "wf";
+			public var title:String;
+			public var printableDocument:String;
+			
+			[Bindable]
+			public var isExportable:Boolean = true;
+			
+			public function set xml( value:XML ):void
+			{
+				parseListData( value.@type, value..item );
+				if( !_player )
+					initializeAudio();
+			}
+			
+		
+			//********************************************************
+			// private methods 
+			//********************************************************
+		
+			// audio methods
+			
+			private function initializeAudio():void
+			{
+				_player =  new MediaPlayer();
+				_player.autoPlay = true;
+				_element = new AudioElement();
+				_player.media = _element; 
+			}
+			
+			private function playTerm( url:String ):void
+			{
+				var media:String = "audio/" + url;
+				_element.resource = new URLResource( media );
+			}
+			
+			private function pauseTerm():void
+			{
+				if( _player != null && _player.playing && _player.canPause )
+				{
+					_player.pause();
+				}
+			}
+			
+			private function doPlayTerm():void
+			{
+				if( grid.selectedIndex != -1 )
+				{
+					var ld:ListData = grid.selectedItem;
+					if( ld != _selectedItem )
+					{
+						playTerm( ld.mediaFile );
+						_selectedItem = ld;
+					}
+					else
+					{
+						if( _player.playing )
+							pauseTerm();
+						else
+							playTerm( _selectedItem.mediaFile );
+					}
+				}
+			}
+			
+			// search and filtering methods
+			
+			private function applyFilter():void {
+				if( this._listCollection.filterFunction == null ) 
+				{
+					this._listCollection.filterFunction = this.filterTerms;
+				}
+				this._listCollection.refresh();
+			};
+			
+			
+			private function clearFilter():void {
+				if( termFilter.text != "" )
+				{
+					termFilter.text = "";
+					applyFilter();
+				}
+			}
+			
+			private function filterTerms( item:Object ):Boolean 
+			{
+				var result:Boolean = true;
+				if( termFilter.text != "" ) 
+				{
+					var term:String = item["term"];
+					if( any.selected == true )
+					{
+						if( term.search(new RegExp(termFilter.text,"i")) < 0 )
+						{
+							result = false;
+						} 
+					}
+					else if( first.selected == true )
+					{
+						var strPatt:String = "^" + termFilter.text + "";
+						var newRegEx:RegExp = new RegExp(strPatt,"i");
+						if( term.search(new RegExp(newRegEx)) < 0 )
+						{
+							result = false;
+						} 
+					}
+				}
+				return result;
+			}
+			
+			private function fnChange( e:Event ):void
+			{
+				applyFilter();
+			}
+			
+			// document methods
+								
+			private function exportToExcel( e:MouseEvent = null ):void
+			{
+				if( !_glossaryObj )
+					prepareGlossaryList();
+				_glossaryObj.filename = courseId + "_glossary.xlsx";
+				_exportManager.exportExcel( _glossaryObj );
+			}
+			
+			
+			protected function openDocument( event:MouseEvent = null ):void
+			{
+				DocumentOpener.open( printableDocument );
+			}
+			
+			
+			// parsing data methods
+			
+			private function parseListData( type:String, xml:XMLList ):void
+			{
+				var ld:ListData;
+				var i:uint = 0;
+				for each( var item:XML in xml )
+				{
+					ld =  new ListData();
+					ld.term = item.term;
+					ld.explanation = item.definition.p;
+					ld.mediaFile = courseId + "." + type + ".term" + ++i + ".mp3";
+					ld.screenReader = "Term: " + ld.term + " Definition: " + ld.explanation;
+					_listCollection.addItem( ld );
+				}
+			}
+			
+			private function prepareGlossaryList():void
+			{
+				var htmlRegExp:RegExp = new RegExp("<[^<]+?>", "gi");
+				
+				_glossaryObj = {};
+				_glossaryObj.items = [];
+				_glossaryObj.title = title;
+				_glossaryObj.lang = "ENGL";
+				var li:ListItem;
+				for each( var item:ListData in _listCollection )
+				{
+					li = new ListItem();
+					li.term = item.term.replace( htmlRegExp, "");
+					li.explanation = item.explanation.replace( htmlRegExp, "");
+					_glossaryObj.items.push( li );
+				}
+			}
+			
+			// Needed to add this method as the updateIndex() method that ensures that the list item is 
+			// in view was causing the scrolling to snap back to the previous selected item
+			private function onVerticalScroll( e:Event ):void
+			{
+				grid.selectedIndex = -1;
+			}
+			
+			// event handlers
+
+			// turn off lists scrollbars and use the windows
+			private function list_creationCompleteHandler(event:FlexEvent):void
+			{
+				grid.scroller.setStyle("horizontalScrollPolicy", "off");
+				grid.scroller.verticalScrollBar.addEventListener( Event.CHANGE, onVerticalScroll );
+				setUpKeyboardSensor();
+			}
+			
+			private function setUpKeyboardSensor():void
+			{
+				if( !_keyboardController )
+					_keyboardController = KeyboardController.getInstance();
+				
+				_keyboardController.setFocusManager( this.focusManager );
+				
+				_keyboardController.createHotKey( grid, doPlayTerm );
+				_keyboardController.createHotKey( iconPrint, openDocument );
+				//_keyboardController.createShortcut( 'openDocument', openDocument, [KeyCodes.NUM_1, KeyCodes.D] );
+				_keyboardController.createHotKey( iconExcel, exportToExcel );
+				//_keyboardController.createShortcut( 'exportToExcel', exportToExcel, [KeyCodes.NUM_2, KeyCodes.D] );
+				_keyboardController.createHotKey( clearBtn, clearFilter );
+			}
+			
+			private function tearDownKeyboardSensor():void
+			{
+				_keyboardController.removeHotKey( grid );
+				_keyboardController.removeHotKey( iconPrint );
+				_keyboardController.removeHotKey( iconExcel );
+				_keyboardController.removeHotKey( clearBtn );
+				
+				_keyboardController.removeShortcut( 'openDocument' );
+				_keyboardController.removeShortcut( 'exportToExcel' );
+				
+				_keyboardController = null;
+			}
+			
+			private function showToolTip( e:Event ):void
+			{
+				e.target.customToolTip.visible = true;
+			}
+			
+			private function hideToolTip( e:Event ):void
+			{
+				e.target.customToolTip.visible = false;
+			}
+			
+			//********************************************************
+			// public methods 
+			//********************************************************
+			
+					
+			public function dispose( e:Event = null  ):void
+			{
+				pauseTerm();
+				_selectedItem = null;
+				
+				// remove listeners
+				grid.scroller.verticalScrollBar.removeEventListener( Event.CHANGE, onVerticalScroll );
+				tearDownKeyboardSensor();
+			}
+			
+			public function activate( e:Event = null ):void
+			{
+				// add listeners
+				if( grid )
+					grid.scroller.verticalScrollBar.addEventListener( Event.CHANGE, onVerticalScroll );
+				setUpKeyboardSensor();
+				pauseTerm();
+			}
+			
+			// ensures selected item is fully in view
+			private function updateIndex():void 
+			{ 
+				grid.ensureIndexIsVisible(grid.selectedIndex); 
+			}
+			
+		]]>
+	</fx:Script>
+			
+	<s:states>
+		<s:State name="loading" />
+		<s:State name="content" />
+	</s:states>
+	
+	<ui:FocusableLabel text="Loading content..." 
+			 tabIndex="5"
+			 includeIn="loading" 
+			 verticalCenter="0" horizontalCenter="0"/>
+	
+	<!-- need to make a link button -->
+	<ui:IconButtonBitmap label="PRINT/SAVE" 
+			 id="iconPrint"
+			 accessibilityDescription="Activate to save content to your desktop" 
+			 tabIndex="8"
+			 styleName="linkButton" 
+			 right="15" color="#1645A2" 
+			 excludeFrom="loading"
+			 click="openDocument(event)"
+			 mouseChildren="false"/>
+	
+	<s:HGroup id="container" 
+			  excludeFrom="loading" 
+			  width="100%" gap="10"
+			  includeInLayout="{isExportable}">
+		
+		<ui:IconButtonBitmap
+			id="iconExcel" 
+			visible="{isExportable}"
+			styleName="buttonExcel" 
+			accessibilityName="Export to Excel"
+			accessibilityDescription="Activate to export to Excel spreadsheet" 
+			customToolTip="{exportTip}"
+			tabIndex="6"
+			buttonMode="true" 
+			focusIn="showToolTip( event )"
+			focusOut="hideToolTip( event )"
+			mouseOver="showToolTip( event )"
+			mouseOut="hideToolTip( event )"
+			click="exportToExcel(event)" 
+			mouseChildren="false"
+			/>
+			
+		<ui:FocusableLabel width="300" id="instructions" fontSize="10"  paddingTop="5"  tabIndex="7" visible="{isExportable}"
+					 text="If you change the filename when saving, be sure to append the correct extension (.xlsx for Excel).  *NOTE: You may have to disable your pop-up blockers to save the file."/>
+		
+	</s:HGroup>
+	
+	<s:Rect top="50" left="0" right="0" height="380" excludeFrom="loading">
+		<s:fill>
+			<s:SolidColor color="0xeeeeee" />
+		</s:fill>
+		<s:stroke>
+			<s:SolidColorStroke color="0xcccccc" />
+		</s:stroke>
+	</s:Rect>
+	
+	<!--<s:HGroup id="letters" top="37" right="0" />-->
+	<ui:FocusableLabel tabIndex="9" fontSize="10" top="56" left="6" width="100%" excludeFrom="loading" color="#000000"
+					   text="Select a term in the list and then either click the selected item or press the ENTER key or SPACEBAR to hear the term and definition."/>
+	
+	<s:List id="grid" top="71" creationComplete="list_creationCompleteHandler(event)"
+			tabIndex="10" accessibilityDescription="Terms"
+			left="6"  right="6" height="325" excludeFrom="loading" 			
+			dataProvider="{_listCollection}" borderColor="#cccccc"  
+			itemRenderer="org.nflc.framework.component.ListItemRenderer" labelField="screenReader" 
+			click="doPlayTerm()" updateComplete="updateIndex()" selectionColor="#f1f1f1" rollOverColor="#f1f1f1">
+		<s:layout>
+			<s:VerticalLayout variableRowHeight="true" gap="15" paddingTop="10" paddingRight="10" paddingLeft="10"/>
+		</s:layout>
+	</s:List>
+	
+	<s:HGroup left="10" bottom="6" excludeFrom="loading">
+		<ui:FocusableLabel text="Search" width="50" paddingTop="5" color="#000000"  tabIndex="11" />
+		<s:TextInput id="termFilter" change="applyFilter()" width="240"  tabIndex="12" accessibilityName="Enter a search term" />
+		<s:Button id="clearBtn" label="Clear" width="50" height="23" click="clearFilter();"  tabIndex="13"/>
+		<mx:Spacer width="10" />
+	
+		<s:RadioButton groupName="rgb" id="any" label="Any occurrence" fontSize="11" selected="true" click="fnChange(event);"  tabIndex="13"/>
+		<s:RadioButton groupName="rgb" id="first" label="Beginning with" fontSize="11" verticalCenter="0" click="fnChange(event);"  tabIndex="14"/>
+	</s:HGroup>
+	
+	<ui:ToolTipBalloon id="printTip"  tipX="60" top="20" right="20" visible="false" glowStrength=".3" glow="0x333333" arrowPlacement="TOP" includeInLayout="false"  />
+	<ui:ToolTipBalloon id="exportTip" tipLabel="Export to Excel" tipWidth="130" tipX="23" top="40" left="10" visible="false" glowStrength=".3" glow="0x333333"  arrowPlacement="TOP"/>
+
+</s:Group>
