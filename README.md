@@ -7,7 +7,7 @@ The CoursePlayerFramework is a reusable framework that was used in the [Intellig
 - load activity data files
 - load both audio and video files
 - export glossary to pdf and excel formats
-- manage applicatin state
+- manage application state
 - provide robust 508 accessbility
 - intergate with the LMS via a javascript wrapper
 - deploy to the web, to a LMS and to a CD
