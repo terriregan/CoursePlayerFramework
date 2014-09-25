@@ -12,8 +12,5 @@ The CoursePlayerFramework is a reusable framework that was used in the [Intellig
 - intergate with the LMS via a javascript wrapper
 - deploy to the web, to a LMS and to a CD
 
-### Role
-I was the lead developer.  All code is mine.
-
 ### Technologies 
 Flex, Actionscript 3, JavaScript, 508 Accessibility, UI Design, LMS/SCORM, XML
